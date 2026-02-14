@@ -1,3 +1,4 @@
+from .bbox import BBox
 from .coordinate import Coordinate
 from .resize import (
     ResizeMetadata,
@@ -9,6 +10,7 @@ from .space import Space
 from .types import ResizeMode
 
 __all__ = [
+    "BBox",
     "Coordinate",
     "ResizeMetadata",
     "ResizeMode",

@@ -4,6 +4,7 @@ import pytest
 from PIL import Image
 
 from gui_agent_screenshot_tools import (
+    BBox,
     Coordinate,
     ResizeMode,
     Screenshot,
@@ -241,3 +242,133 @@ class TestPaddingAreaClamping:
         )
         assert result.x == 0
         assert result.y == 0  # Clamped to top edge
+
+
+class TestBboxScreenOffset:
+    @pytest.fixture
+    def window_screenshot(self):
+        img = Image.new("RGB", (1920, 1080), color=(100, 150, 200))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return Screenshot(
+            image_bytes=buf.getvalue(),
+            space=Space(width=1920, height=1080),
+        )
+
+    def test_letterbox_window_to_screen(self, window_screenshot):
+        screen = Space(width=2560, height=1440)
+        window = BBox(x=50, y=100, width=1920, height=1080, space=screen)
+
+        original = Screenshot(
+            image_bytes=window_screenshot.image_bytes,
+            space=window.as_space,
+        )
+        target = Space(width=1024, height=1024)
+        resized = original.resize(target, ResizeMode.LETTERBOX)
+
+        coord = Coordinate(x=512, y=512, space=resized.space)
+        local_coord = coord.to_space(original.space, resize_metadata=resized.resize_metadata)
+        screen_coord = window.absolutize(local_coord)
+
+        assert screen_coord.space == screen
+        assert abs(screen_coord.x - 1010) <= 2
+        assert abs(screen_coord.y - 640) <= 2
+
+    def test_stretch_window_to_screen(self, window_screenshot):
+        screen = Space(width=2560, height=1440)
+        window = BBox(x=50, y=100, width=1920, height=1080, space=screen)
+
+        original = Screenshot(
+            image_bytes=window_screenshot.image_bytes,
+            space=window.as_space,
+        )
+        target = Space(width=1024, height=1024)
+        resized = original.resize(target, ResizeMode.STRETCH)
+
+        coord = Coordinate(x=512, y=512, space=resized.space)
+        local_coord = coord.to_space(original.space, resize_metadata=resized.resize_metadata)
+        screen_coord = window.absolutize(local_coord)
+
+        assert screen_coord.space == screen
+        assert abs(screen_coord.x - 1010) <= 2
+        assert abs(screen_coord.y - 640) <= 2
+
+    def test_letterbox_bbox_remap_with_offset(self, window_screenshot):
+        """Full pipeline: detection bbox in resized space → to_space with offset → screen bbox."""
+        screen = Space(width=2560, height=1440)
+        window = BBox(x=50, y=100, width=1920, height=1080, space=screen)
+
+        original = Screenshot(
+            image_bytes=window_screenshot.image_bytes,
+            space=window.as_space,
+        )
+        target = Space(width=1024, height=1024)
+        resized = original.resize(target, ResizeMode.LETTERBOX)
+
+        # Model detects a bbox in resized space
+        detection = BBox(x=400, y=400, width=200, height=200, space=resized.space)
+
+        # Remap to screen in one step
+        screen_bbox = detection.to_space(
+            original.space,
+            resize_metadata=resized.resize_metadata,
+            offset=window,
+        )
+        assert screen_bbox.space == screen
+        # The center of the detection should land near screen center + window offset
+        assert screen_bbox.x > window.x
+        assert screen_bbox.y > window.y
+
+        # Verify equivalence with manual two-step approach
+        intermediate = detection.to_space(
+            original.space, resize_metadata=resized.resize_metadata
+        )
+        assert screen_bbox.x == intermediate.x + window.x
+        assert screen_bbox.y == intermediate.y + window.y
+        assert screen_bbox.width == intermediate.width
+        assert screen_bbox.height == intermediate.height
+
+    def test_stretch_bbox_remap_with_offset(self, window_screenshot):
+        """Full pipeline with stretch: detection bbox → to_space with offset → screen bbox."""
+        screen = Space(width=2560, height=1440)
+        window = BBox(x=50, y=100, width=1920, height=1080, space=screen)
+
+        original = Screenshot(
+            image_bytes=window_screenshot.image_bytes,
+            space=window.as_space,
+        )
+        target = Space(width=1024, height=1024)
+        resized = original.resize(target, ResizeMode.STRETCH)
+
+        detection = BBox(x=400, y=400, width=200, height=200, space=resized.space)
+        screen_bbox = detection.to_space(
+            original.space,
+            resize_metadata=resized.resize_metadata,
+            offset=window,
+        )
+        assert screen_bbox.space == screen
+
+        intermediate = detection.to_space(
+            original.space, resize_metadata=resized.resize_metadata
+        )
+        assert screen_bbox.x == intermediate.x + window.x
+        assert screen_bbox.y == intermediate.y + window.y
+
+    def test_bbox_does_not_affect_resize(self, window_screenshot):
+        """Resize metadata is identical whether bbox is involved or not."""
+        screen = Space(width=2560, height=1440)
+        window = BBox(x=50, y=100, width=1920, height=1080, space=screen)
+
+        target = Space(width=1024, height=1024)
+
+        # Direct resize from screenshot
+        resized_direct = window_screenshot.resize(target, ResizeMode.LETTERBOX)
+
+        # Resize via bbox.as_space
+        screenshot_via_bbox = Screenshot(
+            image_bytes=window_screenshot.image_bytes,
+            space=window.as_space,
+        )
+        resized_via_bbox = screenshot_via_bbox.resize(target, ResizeMode.LETTERBOX)
+
+        assert resized_direct.resize_metadata == resized_via_bbox.resize_metadata

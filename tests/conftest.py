@@ -3,7 +3,7 @@ import io
 import pytest
 from PIL import Image
 
-from gui_agent_screenshot_tools import Screenshot, Space
+from gui_agent_screenshot_tools import BBox, Screenshot, Space
 
 
 @pytest.fixture
@@ -55,3 +55,13 @@ def mobile_screenshot(mobile_space):
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return Screenshot(image_bytes=buf.getvalue(), space=mobile_space)
+
+
+@pytest.fixture
+def screen_space():
+    return Space(width=2560, height=1440)
+
+
+@pytest.fixture
+def window_bbox(screen_space):
+    return BBox(x=50, y=100, width=1920, height=1080, space=screen_space)
