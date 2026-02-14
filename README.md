@@ -36,6 +36,35 @@ coord_in_resized = Coordinate(x=640, y=360, space=target)
 original = coord_in_resized.to_space(source, resized.resize_metadata)
 ```
 
+### Window offset with BBox
+
+When screenshots are captured from a window (not fullscreen), use `BBox` to represent the window's position on screen and transform coordinates between window-local and screen space:
+
+```python
+from gui_agent_screenshot_tools import Space, BBox, Coordinate, Screenshot, ResizeMode
+
+screen = Space(width=2560, height=1440)
+window = BBox(x=50, y=100, width=1920, height=1080, space=screen)
+
+# Screenshot is of the window content — its space matches the bbox dimensions
+original = Screenshot(image_bytes=..., space=window.as_space)
+resized = original.resize(Space(width=1024, height=1024), mode=ResizeMode.LETTERBOX)
+
+# Model clicks at (512, 512) in resized space
+coord = Coordinate(x=512, y=512, space=resized.space)
+local_coord = coord.to_space(original.space, resize_metadata=resized.resize_metadata)
+# local_coord ≈ (960, 540) in 1920x1080
+
+# Convert window-local coordinate to screen coordinate
+screen_coord = window.absolutize(local_coord)
+# screen_coord ≈ (1010, 640) in 2560x1440
+
+# Other BBox operations
+window.contains(screen_coord)             # True — point is inside the window
+window.localize(screen_coord)             # Convert screen coord to window-local
+window.to_space(Space(width=1280, height=720))  # Scale bbox to a different space
+```
+
 ## License
 
 MIT
