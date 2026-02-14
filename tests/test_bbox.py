@@ -96,6 +96,45 @@ class TestToSpace:
         )
         assert result.space == sample_screenshot.space
 
+    def test_to_space_with_offset(self):
+        screen = Space(width=2560, height=1440)
+        window = BBox(x=50, y=100, width=1920, height=1080, space=screen)
+        local_space = window.as_space
+        # A bbox in window-local space
+        local_bbox = BBox(x=100, y=200, width=400, height=300, space=local_space)
+        result = local_bbox.to_space(local_space, offset=window)
+        assert result.space == screen
+        assert result.x == 150  # 100 + 50
+        assert result.y == 300  # 200 + 100
+        assert result.width == 400
+        assert result.height == 300
+
+    def test_to_space_with_resize_metadata_and_offset(self, sample_screenshot, square_space):
+        screen = Space(width=2560, height=1440)
+        window = BBox(x=50, y=100, width=1920, height=1080, space=screen)
+
+        resized = sample_screenshot.resize(square_space, ResizeMode.LETTERBOX)
+        bbox_in_resized = BBox(x=100, y=100, width=200, height=200, space=resized.space)
+
+        # Two-step: transform then absolutize manually
+        intermediate = bbox_in_resized.to_space(
+            sample_screenshot.space, resize_metadata=resized.resize_metadata
+        )
+        manual_x = intermediate.x + window.x
+        manual_y = intermediate.y + window.y
+
+        # One-step: transform with offset
+        result = bbox_in_resized.to_space(
+            sample_screenshot.space,
+            resize_metadata=resized.resize_metadata,
+            offset=window,
+        )
+        assert result.space == screen
+        assert result.x == manual_x
+        assert result.y == manual_y
+        assert result.width == intermediate.width
+        assert result.height == intermediate.height
+
 
 class TestContains:
     def test_contains_inside(self):

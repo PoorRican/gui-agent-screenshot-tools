@@ -59,7 +59,10 @@ class BBox(BaseModel, frozen=True):
         return Space(width=self.width, height=self.height)
 
     def to_space(
-        self, target: Space, resize_metadata: ResizeMetadata | None = None
+        self,
+        target: Space,
+        resize_metadata: ResizeMetadata | None = None,
+        offset: BBox | None = None,
     ) -> BBox:
         top_left = self.top_left.to_space(target, resize_metadata=resize_metadata)
         bottom_right = self.bottom_right.to_space(
@@ -69,8 +72,16 @@ class BBox(BaseModel, frozen=True):
         new_y = top_left.y
         new_width = bottom_right.x - top_left.x + 1
         new_height = bottom_right.y - top_left.y + 1
+        if offset is None:
+            return BBox(
+                x=new_x, y=new_y, width=new_width, height=new_height, space=target
+            )
         return BBox(
-            x=new_x, y=new_y, width=new_width, height=new_height, space=target
+            x=new_x + offset.x,
+            y=new_y + offset.y,
+            width=new_width,
+            height=new_height,
+            space=offset.space,
         )
 
     def contains(self, coord: Coordinate) -> bool:
