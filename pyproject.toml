@@ -1,12 +1,21 @@
 [project]
 name = "gui-agent-screenshot-tools"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0.0"
+description = "Screenshot, bounding-box, and coordinate transformation utilities for GUI agents and other GUI related tasks."
 readme = "README.md"
+license = "MIT"
 authors = [
     { name = "Josue Figueroa", email = "poor.rican@pm.me" }
 ]
 requires-python = ">=3.13"
+keywords = ["screenshot", "coordinates", "gui", "automation", "resize", "gui agent"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+]
 dependencies = [
     "pydantic>=2.0",
     "Pillow>=10.0",
@@ -14,6 +23,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/PoorRican/gui-agent-screenshot-tools"
+Repository = "https://github.com/PoorRican/gui-agent-screenshot-tools"
+Issues = "https://github.com/PoorRican/gui-agent-screenshot-tools/issues"
 
 [build-system]
 requires = ["hatchling"]
