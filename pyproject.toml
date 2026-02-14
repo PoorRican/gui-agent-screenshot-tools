@@ -8,7 +8,7 @@ authors = [
     { name = "Josue Figueroa", email = "poor.rican@pm.me" }
 ]
 requires-python = ">=3.13"
-keywords = ["screenshot", "coordinates", "gui", "automation", "resize", "gui agent"]
+keywords = ["screenshot", "coordinates", "gui", "automation", "resize", "gui agent", "computer use agent"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
